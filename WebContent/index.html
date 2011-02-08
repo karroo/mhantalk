@@ -3,28 +3,39 @@
 	<head> 
 	<title>Page Title</title> 
 	<link rel="stylesheet"  href="./js/jquery.mobile-1.0a3.min.css" />
+	<meta charset="UTF-8"/>
 	<script type="text/javascript" src="./js/jquery-1.4.3.min.js"></script>
 	<script type="text/javascript" src="./js/jquery.mobile-1.0a3.min.js"></script>
+	<script>
+	
+	function login(){
+		
+	}
+	
+	</script>
 </head> 
 <body> 
-
 <!-- Start of first page -->
-<div data-role="page" id="foo">
+<div data-role="page" id="login">
 
-	<div data-role="header">
-		<h1>Foo</h1>
-	</div><!-- /header -->
-
-	<div data-role="content">	
-		<p>I'm first in the source order so I'm shown as the page.</p>		
-		<p>View internal page called <a href="#bar">bar</a></p>	
+	
+	<div data-role="content">
+	<form action="#" method='post'>	
+		<div data-role="fieldcontain">
+		    <label for="j_username">User : </label>
+		    <input type="text" name=j_username id="j_username" value=""  />
+		</div>
+		<div data-role='fieldcontain'>
+		    <label for="j_password">Password : </label>
+		    <input type="password" name="j_password" id="j_password" value="" />
+		</div>
+		<div data-inline="true">
+	    	<button type='submit' >확인</a>
+	    </div>
+		</form>
 	</div><!-- /content -->
 
-	<div data-role="footer">
-		<h4>Page Footer</h4>
-	</div><!-- /header -->
 </div><!-- /page -->
-
 
 <!-- Start of second page -->
 <div data-role="page" id="bar">
