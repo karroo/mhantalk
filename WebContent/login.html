@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+ <HEAD>
+  <TITLE> New Document </TITLE>
+  <META NAME="Generator" CONTENT="EditPlus">
+  <META NAME="Author" CONTENT="">
+  <META NAME="Keywords" CONTENT="">
+  <META NAME="Description" CONTENT="">
+  <script type="text/javascript" src="./js/jquery-1.4.3.js"></script>
+
+<script>
+
+
+function login(){
+	jQuery.ajax({url: 'http://localhost/mhantalk/target/j_spring_security_check',
+			type:'post',
+			data : {j_username :'karroo', j_password:'111111'},
+			complete:isLogin
+	});
+
+	
+
+	
+}
+
+function isLogin(){
+		alert('complete');
+		jQuery.ajax({url: 'http://localhost/mhantalk/target/login.action?login_success=1',
+			type:'get',
+			dataType:'json',
+			success: function(data,status, xhr){
+				alert('success '+ data.result); 
+				getTimeline();
+			},
+			error:function(jqXHR, textStatus, errorThrown){
+				alert('error');
+				
+			}
+
+		});
+	}
+
+function getTimeline(){
+
+
+		alert('getTimeline');
+		jQuery.ajax({url: 'http://localhost/mhantalk/target/ajax/getTimeline.action?offset=0&length=20&sortkey=time&sort=desc&reply=3&timeline=home&timeopt=0',
+			type:'get',
+			dataType:'json',
+			success: function(data,status, xhr){
+				alert('success '+ data); 
+			},
+			error:function(jqXHR, textStatus, errorThrown){
+				alert('error');
+			}
+
+		});
+	}
+</script>
+ </HEAD>
+
+ <BODY>
+ <form id='form' action='http://localhost/mhantalk/target/j_spring_security_check' method='post'>
+  <input type="text"  name="j_username">
+  <input type="password"  name="j_password">
+
+ </form>
+   <button onclick='login()'>·Î±×ÀÎ</button>
+ </BODY>
+</HTML>
