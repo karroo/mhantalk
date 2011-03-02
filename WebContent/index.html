@@ -5,14 +5,156 @@
 	<link rel="stylesheet"  href="./js/jquery.mobile-1.0a3.min.css" />
 	<meta charset="UTF-8"/>
 	<script type="text/javascript" src="./js/jquery-1.4.3.min.js"></script>
-	<script type="text/javascript" src="./js/jquery.mobile-1.0a3.min.js"></script>
+	
 	<script>
 	
 	function login(){
+		var user  = jQuery('#j_username').val();
+		var pass = jQuery('#j_password').val();
+		//alert(user+','+pass);
+		jQuery.ajax({url: '/mhantalk/target/j_spring_security_check',
+				type:'post',
+				data : {j_username :user, j_password:pass},
+				complete:isLogin
+		});
+
+		
+
+		
+	}
+
+	function isLogin(){
+			//alert('complete');
+			jQuery.ajax({url: '/mhantalk/target/login.action?login_success=1',
+				type:'get',
+				dataType:'json',
+				success: function(data,status, xhr){
+					jQuery.mobile.changePage('#timeline','slide');
+				},
+				error:function(jqXHR, textStatus, errorThrown){
+					//alert('error');
+					jQuery("#loginmsg").html("아이디나 비밀번호가 잘못되었습니다. 다시 입력하여주세요")
+						.css("color","#f00");
+				}
+
+			});
+		}
+	
+	
+	function getTimeline(start){
+		jQuery.ajax({url: '/mhantalk/target/ajax/getTimeline.action?offset='+start+'&length=20&sortkey=time&sort=desc&reply=3&timeline=home&timeopt=0',
+			type:'get',
+			dataType:'json',
+			success: function(data,status, xhr){
+				jQuery("#listview").children('li:last').remove();
+				var result = data.result;
+				for(var i =0;i<result.length;i++){
+					//result[i].account.profileVoList.imgPatth
+					insert(result[i],false);
+					
+					
+					if(result[i].children.length>0){
+						var children=result[i].children;
+						for(var j =0; j<children.length;j++){
+							insert(children[j],true);
+						}
+					}
+					
+					
+				}
+				
+				
+				var li = jQuery('<li/>').appendTo(jQuery("#listview"));
+				li.css('background-color','#fff')
+					.css('halign','center');
+				
+				var btn = jQuery('<button onclick="getTimeline('+(start+20)+')">더보기</button>').appendTo(li);
+		
+				btn.css('height','40px')
+					.css('width','100%')
+					.css('font-size','1em');
+					
+				
+			},
+			error:function(jqXHR, textStatus, errorThrown){
+				alert('getTimeline error');
+			}
+
+		});
+	}
+	
+	function insert(data,isChild){
+			//result[i].account.profileVoList.imgPatth
+		var li = jQuery('<li/>').appendTo(jQuery("#listview"));
+		if(!isChild) li.attr('parent','true');
+		li.css('font-size','.7em')
+			//.css('height','100px')
+			.css('padding-left',isChild ? '80px':'50px')
+			.css('padding-bottom','5px')
+			.css('border-top',isChild ? '':'1px solid #ccc')
+			.css('background-color','#fff')
+			.css('background-size','40px 40px')
+			.css('background-position',isChild ? '30px 0px':'0px 0px')
+			.css('background-repeat','no-repeat')
+			.css('background-image','url(/mhantalk/target/data-imgs/avatar/default/'+
+									data.account.profileVoList[0].imgPath+')');
+		
+		var cnt = jQuery('<div/>').appendTo(li);
+		//cnt.css('height','85px');
+		cnt.html('<span style="font-weight:bold;color:#00f">'+data.account.profileVoList[0].userName+'</span>&nbsp;'+
+					data.postVo.postText);
+		
+		
+		var footer = jQuery('<div/>').appendTo(li);
+		var foohtml = data.postVo.via+'에서';
+		foohtml+='&nbsp;<img src="/mhantalk/target/static/images/ico_good.png"/>';
+		if(data.likerVoList.length>0){
+			foohtml+= '&nbsp;'+data.likerVoList.length+'명이 좋아합니다';
+		}
+		footer.html(foohtml);
+		
+		if(!isChild){
+			li.bind('tap',function(event,ui){
+				jQuery('div.newtalk').html("나누고 싶은 hantalk?");
+				if(jQuery(li).children('div.reply').size() >0) return;
+				jQuery('div.reply').remove();
+				var reply = jQuery('<div style="border:1px solid" class="reply">댓글을 기다려요</div>').appendTo(li);
+				reply.bind('tap',function(event,ui){
+					if(reply.find('textarea').size() > 0 ) return;
+					reply.html("");
+					jQuery('<table width="100%"><tr><td><textarea style="width:100%" rows="8"/></td><td width="50px"><button>확인</button></td></tr></table').appendTo(reply);
+					
+					
+				});
+				
+				event.stopPropagation();
+			});
+		}
 		
 	}
 	
+	function newTalk(){
+		jQuery('div.reply').remove();
+		var newtalk = jQuery('div.newtalk');
+		if(newtalk.find('textarea').size()>0) return;
+		newtalk.html("");
+		jQuery('<table width="100%"><tr><td><textarea style="width:100%" rows="8"/></td><td width="50px"><button>확인</button></td></tr></table').appendTo(newtalk);
+		
+		event.stopPropagation();
+	}
+	
+	
+	jQuery(document).bind("mobileinit", function(){
+		jQuery('#timeline').live('pageshow',function(event, ui){
+			  getTimeline(0);
+		});
+		
+		
+	});
+	
 	</script>
+	
+	<script type="text/javascript" src="./js/jquery.mobile-1.0a3.min.js"></script>
 </head> 
 <body> 
 <!-- Start of first page -->
@@ -20,38 +162,45 @@
 
 	
 	<div data-role="content">
-	<form action="#" method='post'>	
-		<div data-role="fieldcontain">
-		    <label for="j_username">User : </label>
-		    <input type="text" name=j_username id="j_username" value=""  />
-		</div>
-		<div data-role='fieldcontain'>
-		    <label for="j_password">Password : </label>
-		    <input type="password" name="j_password" id="j_password" value="" />
-		</div>
-		<div data-inline="true">
-	    	<button type='submit' >확인</a>
-	    </div>
-		</form>
+		<table width='100%' >
+		<tr><td align='center' colspan='2'><img width='200px' src='./images/hans_logo.png'/></td></tr>
+		
+		<tr><td width='30%'>아이디 : </td>
+		<td style='padding-right:20px'>
+		    <input  style='width:100%' type="text" name=j_username id="j_username" value=""  />
+		</td></tr>
+		<tr><td>비밀번호 : </td>
+		<td style='padding-right:20px'>
+		    <input style='width:100%' type="password" name="j_password" id="j_password" value="" />
+		</td></tr>
+		<tr><td align='center' colspan='2'><span id='loginmsg'>아이디와 비밀번호를 입력하여 주세요</span></td></tr>
+		
+		<tr><td align='center' colspan='2'><a style='width:100px' href="#" data-role='button' onclick='login()' >확인</a></td></tr>
+		</table>
+		
+	
 	</div><!-- /content -->
 
 </div><!-- /page -->
 
 <!-- Start of second page -->
-<div data-role="page" id="bar">
+<div data-role="page" id="timeline">
 
-	<div data-role="header">
-		<h1>Bar</h1>
+	<div data-role="header" data-position="fixed" data-theme="c">
+		<a href="#" data-rel="back" data-icon="arrow-l">Logout</a>
+		<h1>Timeline</h1>
 	</div><!-- /header -->
 
 	<div data-role="content">	
-		<p>I'm first in the source order so I'm shown as the page.</p>		
-		<p><a href="#foo">Back to foo</a></p>	
-	</div><!-- /content -->
+		<ul id='listview'  data-role="listview" data-theme="d" data-dividertheme="c">
+			<li style='font-size:.8em'>
+				<div style="width:100%;border:1px solid" class="newtalk" onclick='newTalk()'>나누고 싶은 Hantalk?</div>
+			</li>
+			<li></li>
+		</ul>
+		
 
-	<div data-role="footer">
-		<h4>Page Footer</h4>
-	</div><!-- /header -->
+	</div><!-- /content -->
 </div><!-- /page -->
 
 </body>
