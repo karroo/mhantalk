@@ -4,6 +4,9 @@
 	<title>Page Title</title> 
 	<meta charset="UTF-8"/>
 	<link rel="stylesheet"  href="./js/jquery.mobile-1.0a3.min.css" />
+	<style type="text/css">
+		.background-color:#fff;
+	</style>
 	<script type="text/javascript" src="./js/jquery-1.5.1.min.js"></script>
 	
 	<script>
@@ -42,6 +45,13 @@
 	
 	
 	function getTimeline(start){
+		jQuery("#listview").children('li[selected=true]')
+		.attr('selected','false')
+		.css('background-color','#fff');
+		if(start==0){
+			if(jQuery('#listview').children('li').size() > 0) return;
+			jQuery('#listview').children('li').remove();
+		}
 		jQuery.ajax({url: '/mhantalk/target/ajax/getTimeline.action?offset='+start+'&length=20&sortkey=time&sort=desc&reply=3&timeline=home&timeopt=0',
 			type:'get',
 			dataType:'json',
@@ -66,9 +76,10 @@
 				
 				var li = jQuery('<li/>').appendTo(jQuery("#listview"));
 				li.css('background-color','#fff')
-					.css('halign','center');
+					.css('halign','center')
+					.css('padding','30px')
 				
-				var btn = jQuery('<button onclick="getTimeline('+(start+20)+')">더보기</button>').appendTo(li);
+				var btn = jQuery('<button data-theme="d" onclick="getTimeline('+(start+20)+')">더보기</button>').appendTo(li);
 		
 				btn.css('height','40px')
 					.css('width','100%')
@@ -115,24 +126,27 @@
 			foohtml+= '&nbsp;'+data.likerVoList.length+'명';
 		}
 		if(data.children.length>0){
-			foohtml+='&nbsp;<a href="#" onclick="toggleReply('+data.postVo.postId+')">댓글 '+data.children.length+'개</a>';
+			//foohtml+='&nbsp;<a href="#" onclick="toggleReply('+data.postVo.postId+')">댓글 '+data.children.length+'개</a>';
+			foohtml+='&nbsp;<span style="font-weight:bold;color:#00f">댓글 '+data.children.length+'개</span>';
 		}
 		footer.html(foohtml);
 		
 		li.bind('tap',function(event,ui){
-			/*if(!isChild && jQuery(li).children('div.reply').size() ==0){
-				jQuery('div.reply').remove();
-				var reply = jQuery('<div style="border:1px solid" class="reply">댓글을 기다려요</div>').appendTo(li);
-				reply.bind('tap',function(event,ui){
-					jQuery.mobile.changePage('#reply','slideup');
-					
-				});
-				
-			}*/
-			event.stopPropagation();
+			jQuery("#listview").children('li[selected=true]')
+								.attr('selected','false')
+								.css('background-color','#fff');
+								//.animate({'background-color':'#fff'},'fast');
+			
+			jQuery(event.currentTarget).attr('selected','true')
+									.css('background-color','#ddd');
+									//.animate({'background-color':'#ddd'},'fast');
+			
+			jQuery('#detailview').children('li').remove();
+			jQuery.mobile.changePage('#detail','slide');
+			//event.stopPropagation();
 		});
 		li.bind('swiperight',function(event,ui){
-			jQuery('li').attr('onmenu','false');
+			/*jQuery('li').attr('onmenu','false');
 			li.attr('onmenu','true');
 			var left = 0;
 			var top = li.offset().top;
@@ -148,11 +162,67 @@
 		
 			menu.animate({"left": "+="+width+"px"}, "fast");
 			
-			
+			*/
 		});
 	}
 	
-	
+	function getReplyAll(){
+		jQuery('#detailview').children('li').remove();
+		var mainthread = jQuery('#listview').children('li[selected=true]').clone()
+							.css('background-color','#fff');
+		jQuery("#detailview").append(mainthread);
+		
+		var postId = mainthread.attr('pid');
+		jQuery.ajax({url: '/mhantalk/target/ajax/getReplyAll.action?post_id='+postId,
+			type:'get',
+			dataType:'json',
+			success: function(data,status, xhr){
+				var result = data.result;
+				for(var i =0;i<result.length;i++){
+					//result[i].account.profileVoList.imgPatth
+					var data = result[i];
+					var li = jQuery('<li/>').appendTo(jQuery("#detailview"));
+					li.attr('parent-pid',data.postVo.parentPostId);
+					li.attr('pid',data.postVo.postId);
+					li.css('font-size','.8em')
+						//.css('height','100px')
+						.css('padding','5px')
+						.css('padding-left','80px')
+						//.css('border-top',isChild ? '':'1px solid #ccc')
+						.css('background-color','#fff')
+						.css('background-size','40px 40px')
+						.css('background-position','30px 0px')
+						.css('background-repeat','no-repeat')
+						.css('background-image','url(/mhantalk/target/data-imgs/avatar/default/'+
+												data.account.profileVoList[0].imgPath+')');
+					
+					var cnt = jQuery('<div style="padding-bottom:5px"/>').appendTo(li);
+					//cnt.css('height','85px');
+					cnt.html('<span style="font-weight:bold;color:#00f">'+data.account.profileVoList[0].userName+'</span>&nbsp;'+
+								data.postVo.postText);
+					
+					
+					var footer = jQuery('<div/>').appendTo(li);
+					var foohtml = data.postVo.via+'에서';
+					if(data.likerVoList.length>0){
+						foohtml+='&nbsp;<img src="/mhantalk/target/static/images/ico_good.png"/>';
+						foohtml+= '&nbsp;'+data.likerVoList.length+'명';
+					}
+					if(data.children.length>0){
+						//foohtml+='&nbsp;<a href="#" onclick="toggleReply('+data.postVo.postId+')">댓글 '+data.children.length+'개</a>';
+						foohtml+='&nbsp;<span style="font-weight:bold;color:#00f">댓글 '+data.children.length+'개</span>';
+					}
+					footer.html(foohtml);
+				}
+		
+			},
+			error:function(jqXHR, textStatus, errorThrown){
+				alert('getTimeline error');
+			}
+
+		});
+		
+	}
 	function toggleReply(postId){
 		var show = jQuery("li[pid="+postId+"]").attr("show");
 		if(show == 'true'){
@@ -187,12 +257,63 @@
 	
 	*/
 	
+	
+	var aaa = 'Content-Type: multipart/form-data; boundary=---------------------------195392804710946\r\n'
+			+'Content-Length: 717\r\n'
+			+'\r\n'
+			+'-----------------------------195392804710946\r\n'
+			+'Content-Disposition: form-data; name="ug_id"\r\n'
+			+'\r\n'
+			+'testing\r\n'
+			+'-----------------------------195392804710946\r\n'
+			+'Content-Disposition: form-data; name="parent_post_id"\r\n'
+			+'\r\n'
+			+'-1\r\n'
+			+'-----------------------------195392804710946\r\n'
+			+'Content-Disposition: form-data; name="via"\r\n'
+			+'\r\n'
+			+'web\r\n'
+			+'-----------------------------195392804710946\r\n'
+			+'Content-Disposition: form-data; name="profile"\r\n'
+			+'\r\n'
+			+'false\r\n'
+			+'-----------------------------195392804710946\r\n'
+			+'Content-Disposition: form-data; name="post_text"\r\n'
+			+'\r\n'
+			+'fasd\r\n' 
+			+'-----------------------------195392804710946\r\n'
+			+'Content-Disposition: form-data; name="upload_file"; filename=""\r\n'
+			+'Content-Type: application/octet-stream\r\n'
+			+'\r\n'
+			+'\r\n'
+			+'-----------------------------195392804710946--\r\n';
+			
+			
 	function newTalk(){
-		jQuery.mobile.changePage('#talk','slidedown');
+		alert(11);
+		jQuery.ajax({url: '/mhantalk/target/ajax/post.action',
+			type:'post',
+			dataType:'json',
+			data:aaa,
+			contentType:'multipart/form-data',
+			success: function(data,status, xhr){
+				alert('new Talk success');
+			},
+			error:function(jqXHR, textStatus, errorThrown){
+				alert('newTalk error');
+			}
+		});
+		//jQuery.mobile.changePage('#talk','slidedown');
 	}
 	jQuery(document).bind("mobileinit", function(){
 		jQuery('#timeline').live('pageshow',function(event, ui){
 			  getTimeline(0);
+		});
+		
+		
+		
+		jQuery('#detail').live('pageshow',function(event,ui){
+			getReplyAll();
 		});
 		
 		
@@ -208,6 +329,8 @@
 			.css('height',height+'px');
 	});
 	
+	
+	
 	</script>
 	
 	<script type="text/javascript" src="./js/jquery.mobile-1.0a3.min.js"></script>
@@ -216,7 +339,6 @@
 <!-- Start of first page -->
 <div data-role="page" id="login">
 
-	
 	<div data-role="content">
 		<table width='100%' >
 		<tr><td align='center' colspan='2'><img width='200px' src='./images/hans_logo.png'/></td></tr>
@@ -242,17 +364,14 @@
 <!-- Start of second page -->
 <div data-role="page" id="timeline">
 
-	<div data-role="header" data-position="fixed" data-theme="c">
+	<div data-role="header" data-position="inline" data-theme="c">
 		<a href="#" data-rel="back" data-icon="arrow-l">Logout</a>
 		<h1>Timeline</h1>
 		<a href="#talk" data-icon='arrow-r' data-rel="dialog" data-transition="slidedown">Talk</a>
 	</div><!-- /header -->
 
 	<div data-role="content">	
-		<ul id='listview'  data-role="listview" data-theme="d" data-dividertheme="c">
-		
-			<li></li>
-		</ul>
+		<ul id='listview'  data-role="listview" data-theme="d" data-dividertheme="c"/>
 		
 
 	</div><!-- /content -->
@@ -267,6 +386,18 @@
 	</div>
 </div><!-- /page -->
 
+<div data-role="page" id="detail" style='background-color:#fff'>
+
+	<div data-role="header" data-position="fixed" data-theme="c">
+		<a href="#" data-rel="back" data-icon="arrow-l">Timeline</a>
+		<h1>Detail</h1>
+		<a href="#reply" data-icon='arrow-r' data-rel="dialog" data-transition="slidedown">Reply</a>
+	</div><!-- /header -->
+
+	<div data-role="content" >	
+		<ul id='detailview'  data-role="listview" data-theme="d" data-dividertheme="c"/>
+	</div>
+</div>
 
 <div data-role='page' id='talk'>
 	<div data-role="header" data-theme="d" data-position="inline">
@@ -274,11 +405,10 @@
 	</div><!-- /header -->
 	<div data-role='content'>
 		<p>남기고자 하는 글을 입력하세요</p>
-		<textarea style='height:100px'>sdfghj</textarea>
-		<a href="#" data-role="button" data-theme="b" data-inline="true">Save</a>
+		<textarea style='height:100px'></textarea>
+		<a href="#" data-role="button" data-theme="b" data-inline="true" onclick='newTalk()'>Save</a>
 		<span style='color:#a00'>몇자</span>
-		
-		
+	
 		 
 	</div>
 
@@ -291,12 +421,9 @@
 	</div><!-- /header -->
 	<div data-role='content'>
 		<p>남기고자 하는 글을 입력하세요</p>
-		<textarea style='height:100px'>sdfghj</textarea>
+		<textarea style='height:100px'></textarea>
 		<a href="#" data-role="button" data-theme="b" data-inline="true">Save</a>
 		<span style='color:#a00'>몇자</span>
-		
-		
-		 
 	</div>
 
 
