@@ -45,12 +45,28 @@
 	
 	
 	function getTimeline(start){
+		
 		jQuery("#listview").children('li[selected=true]')
 		.attr('selected','false')
 		.css('background-color','#fff');
 		if(start==0){
 			if(jQuery('#listview').children('li').size() > 0) return;
 			jQuery('#listview').children('li').remove();
+			
+			var li = jQuery('<li><table height="100%" width="100%"><tr><td align="center" valign="middle">새로 가져오기</td></tr></table></li>').appendTo(jQuery('#listview'));
+			li.css('height','40px')
+				.css('background-color','#fff')
+				.css('color','#555')
+				.css('font-size','1.2em');
+
+			li.bind('click',function(event,ui){
+				jQuery("#listview").children('li').remove();
+				getTimeline(0);
+				
+				//event.stopPropagaion();
+			});
+			
+			jQuery('<li/>').appendTo(jQuery('#listview'));
 		}
 		jQuery.ajax({url: '/mhantalk/target/ajax/getTimeline.action?offset='+start+'&length=20&sortkey=time&sort=desc&reply=3&timeline=home&timeopt=0',
 			type:'get',
@@ -62,13 +78,13 @@
 					//result[i].account.profileVoList.imgPatth
 					insert(result[i],false);
 					
-					
+					/*
 					if(result[i].children.length>0){
 						var children=result[i].children;
 						for(var j =0; j<children.length;j++){
 							insert(children[j],true);
 						}
-					}
+					}*/
 					
 					
 				}
@@ -94,29 +110,40 @@
 		});
 	}
 	
-	function insert(data,isChild){
+	function insert(data,isNew){
 			//result[i].account.profileVoList.imgPatth
-		var li = jQuery('<li/>').appendTo(jQuery("#listview"));
+		var li = jQuery('<li/>');
+		console.debug(jQuery("#listview").children('li:first')[0]);
+		if(isNew ) jQuery("#listview").children('li:first').after(li);
+		else li.appendTo(jQuery("#listview"));
+		
+		
+		
+		
 		li.attr('parent-pid',data.postVo.parentPostId);
 		li.attr('pid',data.postVo.postId);
-		if(!isChild) li.attr('parent','true');
-		if(isChild)li.css("display","none");
+		
 		li.css('font-size','.8em')
 			//.css('height','100px')
 			.css('padding','5px')
-			.css('padding-left',isChild ? '90px':'50px')
-			.css('border-top',isChild ? '':'1px solid #ccc')
+			.css('padding-left','50px')
+			.css('border-top','1px solid #ccc')
 			.css('background-color','#fff')
 			.css('background-size','40px 40px')
-			.css('background-position',isChild ? '30px 0px':'0px 0px')
+			.css('background-position','5px 5px')
 			.css('background-repeat','no-repeat')
 			.css('background-image','url(/mhantalk/target/data-imgs/avatar/default/'+
 									data.account.profileVoList[0].imgPath+')');
 		
 		var cnt = jQuery('<div style="padding-bottom:5px"/>').appendTo(li);
 		//cnt.css('height','85px');
+		
+		
+		
+		
 		cnt.html('<span style="font-weight:bold;color:#00f">'+data.account.profileVoList[0].userName+'</span>&nbsp;'+
-					data.postVo.postText);
+				'<span class="postText">'+data.postVo.postText+'</span>');
+		
 		
 		
 		var footer = jQuery('<div/>').appendTo(li);
@@ -126,8 +153,8 @@
 			foohtml+= '&nbsp;'+data.likerVoList.length+'명';
 		}
 		if(data.children.length>0){
-			//foohtml+='&nbsp;<a href="#" onclick="toggleReply('+data.postVo.postId+')">댓글 '+data.children.length+'개</a>';
-			foohtml+='&nbsp;<span style="font-weight:bold;color:#00f">댓글 '+data.children.length+'개</span>';
+			//foohtml+='&nbsp;<a href="#" onclick="toggleReply('+data.postVo.postId+')">댓글 '+data.replyCount+'개</a>';
+			foohtml+='&nbsp;<span style="font-weight:bold;color:#00f">댓글 '+data.replyCount+'개</span>';
 		}
 		footer.html(foohtml);
 		
@@ -145,31 +172,24 @@
 			jQuery.mobile.changePage('#detail','slide');
 			//event.stopPropagation();
 		});
-		li.bind('swiperight',function(event,ui){
-			/*jQuery('li').attr('onmenu','false');
-			li.attr('onmenu','true');
-			var left = 0;
-			var top = li.offset().top;
-			var width = li.outerWidth();
-			var height = li.outerHeight();
-			var menu = jQuery('#menu');//.appendTo(jQuery('body'));
-			
-			menu.css('top',top+'px')
-				.css('left',(-width)+'px')
-				.css('width',width+'px')
-				.css('height',height+'px')
-				.css('display','block');
 		
-			menu.animate({"left": "+="+width+"px"}, "fast");
-			
-			*/
-		});
 	}
 	
 	function getReplyAll(){
 		jQuery('#detailview').children('li').remove();
-		var mainthread = jQuery('#listview').children('li[selected=true]').clone()
-							.css('background-color','#fff');
+		var mainthread = jQuery('#listview').children('li[selected=true]').clone();
+		
+		var span   =  mainthread.find('span.postText');
+		var a = span.html()+' ';
+		var urls = a.match(/http:\/\/\S*\s/gi);
+		
+		for(var i=0;urls != null && i<urls.length;i++){
+			var url = urls[i].replace(' ','');
+			a = a.replace(url,'<a href="'+url+'" target="_blank" >'+url+'</a> ');
+		}
+		
+		span.html(a);
+							//.css('background-color','#fff');
 		jQuery("#detailview").append(mainthread);
 		
 		var postId = mainthread.attr('pid');
@@ -191,15 +211,25 @@
 						//.css('border-top',isChild ? '':'1px solid #ccc')
 						.css('background-color','#fff')
 						.css('background-size','40px 40px')
-						.css('background-position','30px 0px')
+						.css('background-position','35px 5px')
 						.css('background-repeat','no-repeat')
 						.css('background-image','url(/mhantalk/target/data-imgs/avatar/default/'+
 												data.account.profileVoList[0].imgPath+')');
 					
 					var cnt = jQuery('<div style="padding-bottom:5px"/>').appendTo(li);
 					//cnt.css('height','85px');
+					
+					var b = data.postVo.postText;
+					
+					var urls = b.match(/http:\/\/\S*\s/gi);
+					for(var j=0;urls != null && j<urls.length;j++){
+						var url = urls[j].replace(' ','');
+						b = b.replace(url,'<a  href="'+url+'" target="_blank" >'+url+'</a> ');
+					}
+					
+					
 					cnt.html('<span style="font-weight:bold;color:#00f">'+data.account.profileVoList[0].userName+'</span>&nbsp;'+
-								data.postVo.postText);
+								b);
 					
 					
 					var footer = jQuery('<div/>').appendTo(li);
@@ -244,27 +274,20 @@
 	function like(){
 		menuclose();
 	}
-	/*
-	function newTalk(){
-		jQuery('div.reply').remove();
-		var newtalk = jQuery('div.newtalk');
-		if(newtalk.find('textarea').size()>0) return;
-		newtalk.html("");
-		jQuery('<table width="100%"><tr><td><textarea style="width:100%" rows="8"/></td><td width="50px"><button>확인</button></td></tr></table').appendTo(newtalk);
-		
-		event.stopPropagation();
-	}
 	
-	*/
+	
+	function go(url){
+		//alert(url);
+		$.mobile.changePage(url, "pop", false, false);
+	}
 	
 	
 	var aaa = 'Content-Type: multipart/form-data; boundary=---------------------------195392804710946\r\n'
-			+'Content-Length: 717\r\n'
 			+'\r\n'
 			+'-----------------------------195392804710946\r\n'
 			+'Content-Disposition: form-data; name="ug_id"\r\n'
 			+'\r\n'
-			+'testing\r\n'
+			+'0\r\n'
 			+'-----------------------------195392804710946\r\n'
 			+'Content-Disposition: form-data; name="parent_post_id"\r\n'
 			+'\r\n'
@@ -289,15 +312,61 @@
 			+'-----------------------------195392804710946--\r\n';
 			
 			
-	function newTalk(){
-		alert(11);
+	function post(isReply){
+		var parentId = '-1';
+		var postText = jQuery('#newtalkArea').val();
+		//alert(isReply);
+		if(isReply){
+			parentId = jQuery('#detailview').find('li:first').attr('pid');
+			postText = jQuery('#replyArea').val();
+		}
+		
+		//alert(postText);
+		var boundary= '---------------------------195392804710946';
+		var content =  'Content-Type: multipart/form-data; boundary='+boundary+'\r\n'
+					+'\r\n'
+					+'--'+boundary+'\r\n'
+					+'Content-Disposition: form-data; name="ug_id"\r\n'
+					+'\r\n'
+					+'0\r\n'
+					+'--'+boundary+'\r\n'
+					+'Content-Disposition: form-data; name="parent_post_id"\r\n'
+					+'\r\n'
+					+parentId+'\r\n'
+					+'--'+boundary+'\r\n'
+					+'Content-Disposition: form-data; name="via"\r\n'
+					+'\r\n'
+					+'web\r\n'
+					+'--'+boundary+'\r\n'
+					+'Content-Disposition: form-data; name="profile"\r\n'
+					+'\r\n'
+					+'false\r\n'
+					+'--'+boundary+'\r\n'
+					+'Content-Disposition: form-data; name="post_text"\r\n'
+					+'\r\n'
+					+postText+'\r\n' 
+					+'--'+boundary+'\r\n'
+					+'Content-Disposition: form-data; name="upload_file"; filename=""\r\n'
+					+'Content-Type: application/octet-stream\r\n'
+					+'\r\n'
+					+'\r\n'
+					+'--'+boundary+'--\r\n';
 		jQuery.ajax({url: '/mhantalk/target/ajax/post.action',
 			type:'post',
 			dataType:'json',
-			data:aaa,
-			contentType:'multipart/form-data',
+			data:content,
+			contentType:'multipart/form-data;boundary='+boundary,
 			success: function(data,status, xhr){
-				alert('new Talk success');
+				
+				data.result[0].postVo.postText = jQuery('#newtalkArea').val();
+				
+				
+				if(isReply){
+					jQuery('#reply').dialog('close');	
+				}else{
+					insert(data.result[0],true);
+					jQuery('#talk').dialog('close');
+				}
 			},
 			error:function(jqXHR, textStatus, errorThrown){
 				alert('newTalk error');
@@ -307,14 +376,25 @@
 	}
 	jQuery(document).bind("mobileinit", function(){
 		jQuery('#timeline').live('pageshow',function(event, ui){
+			  jQuery('#timeline').children('div[data-role=content]').css('min-height',screen.height+'px');
 			  getTimeline(0);
+				
 		});
+		
+		jQuery('#timeline').live('pagebeforehide',function(event, ui){
+			  event.stopPropagation();
+				
+		});
+		
 		
 		
 		
 		jQuery('#detail').live('pageshow',function(event,ui){
+			  jQuery('#detail').children('div[data-role=content]').css('min-height',screen.height+'px');
 			getReplyAll();
 		});
+		
+		
 		
 		
 	});
@@ -334,6 +414,9 @@
 	</script>
 	
 	<script type="text/javascript" src="./js/jquery.mobile-1.0a3.min.js"></script>
+	
+	
+	
 </head> 
 <body> 
 <!-- Start of first page -->
@@ -367,11 +450,11 @@
 	<div data-role="header" data-position="inline" data-theme="c">
 		<a href="#" data-rel="back" data-icon="arrow-l">Logout</a>
 		<h1>Timeline</h1>
-		<a href="#talk" data-icon='arrow-r' data-rel="dialog" data-transition="slidedown">Talk</a>
+		<a href="#talk"  data-rel="dialog" data-transition="slidedown">Talk</a>
 	</div><!-- /header -->
 
-	<div data-role="content">	
-		<ul id='listview'  data-role="listview" data-theme="d" data-dividertheme="c"/>
+	<div data-role="content" >	
+		<ul id='listview' style='overflow-y:scroll' data-role="listview" data-theme="d" data-dividertheme="c"/>
 		
 
 	</div><!-- /content -->
@@ -388,15 +471,17 @@
 
 <div data-role="page" id="detail" style='background-color:#fff'>
 
-	<div data-role="header" data-position="fixed" data-theme="c">
+	<div data-role="header" data-position="inline" data-theme="c">
 		<a href="#" data-rel="back" data-icon="arrow-l">Timeline</a>
 		<h1>Detail</h1>
-		<a href="#reply" data-icon='arrow-r' data-rel="dialog" data-transition="slidedown">Reply</a>
+		<a href="#reply"  data-rel="dialog" data-transition="slidedown">Reply</a>
 	</div><!-- /header -->
 
-	<div data-role="content" >	
+	<div data-role="content" style='background-color:#fff'>	
 		<ul id='detailview'  data-role="listview" data-theme="d" data-dividertheme="c"/>
 	</div>
+	
+	
 </div>
 
 <div data-role='page' id='talk'>
@@ -405,8 +490,8 @@
 	</div><!-- /header -->
 	<div data-role='content'>
 		<p>남기고자 하는 글을 입력하세요</p>
-		<textarea style='height:100px'></textarea>
-		<a href="#" data-role="button" data-theme="b" data-inline="true" onclick='newTalk()'>Save</a>
+		<textarea id='newtalkArea' style='height:100px'></textarea>
+		<a href="#" data-role="button" data-theme="b" data-inline="true" onclick='post(false)'>Save</a>
 		<span style='color:#a00'>몇자</span>
 	
 		 
@@ -421,12 +506,18 @@
 	</div><!-- /header -->
 	<div data-role='content'>
 		<p>남기고자 하는 글을 입력하세요</p>
-		<textarea style='height:100px'></textarea>
-		<a href="#" data-role="button" data-theme="b" data-inline="true">Save</a>
+		<textarea id='replyArea' style='height:100px'></textarea>
+		<a href="#" data-role="button" data-theme="b" data-inline="true" onclick='post(true)'>Save</a>
 		<span style='color:#a00'>몇자</span>
 	</div>
+	
+	
 
 
+</div>
+
+<div data-role='page' id='external'>
+몰라요
 </div>
 
 </body>
